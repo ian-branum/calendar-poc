@@ -1,5 +1,7 @@
 import React from 'react';
 import FullCalendar from '@fullcalendar/react'
+import Calendar from '@fullcalendar/core'
+import googleCalendarPlugin from '@fullcalendar/google-calendar';
 import timeGridPlugin from '@fullcalendar/timegrid'
 import interactionPlugin from "@fullcalendar/interaction";
 import axios from 'axios';
@@ -30,8 +32,9 @@ class App extends React.Component {
     return ret;
   }
 
+
   componentDidMount() {
-      this.callAPI();
+      this.callAPI(); 
   }
 
     handleDateClick = (arg) => { 
@@ -50,7 +53,6 @@ class App extends React.Component {
   }
   
   handleEventClick = (arg) => { 
-    //alert(arg.event.title);
     var title = prompt('New title', arg.event.title);
     const sess = {sessId: arg.event.extendedProps.sessId, title:title, start:arg.event.start, end:arg.event.end};
     axios
@@ -62,7 +64,6 @@ class App extends React.Component {
   }
 
   handleEventDrop = (arg) => {
-    //alert(arg.event.extendedProps.sessId);
     const sess = {sessId: arg.event.extendedProps.sessId, title:arg.event.title, start:arg.event.start, end:arg.event.end};
     axios
       .post('http://localhost:5000/api/student', sess)
@@ -71,10 +72,29 @@ class App extends React.Component {
       });
   }
 
+  /** 
   render() {
     return (
       <div className="App">
-        
+        <Calendar
+          plugins={[timeGridPlugin, interactionPlugin, googleCalendarPlugin]}
+          googleCalendarApiKey='AIzaSyAHnsj2e9SXHt3gULMRrJ9WcABzNm2vVEo'
+          events={
+            googleCalendarId='c_7955ufnv2qh61m7vs5qjk1hhs8@group.calendar.google.com'
+            }
+          initialView="timeGridWeek"
+          editable = {true}
+          dateClick={this.handleDateClick}
+         
+      />  
+       </div>
+    )
+  }
+*/
+
+  render() {
+    return (
+      <div className="App">
         <FullCalendar
           plugins={[ timeGridPlugin, interactionPlugin ]}
           initialView="timeGridWeek"
