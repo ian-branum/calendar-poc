@@ -78,9 +78,9 @@ class App extends React.Component {
       <div className="App">
         <Calendar
           plugins={[timeGridPlugin, interactionPlugin, googleCalendarPlugin]}
-          googleCalendarApiKey='AIzaSyAHnsj2e9SXHt3gULMRrJ9WcABzNm2vVEo'
+          googleCalendarApiKey='AIzaSyDcnW6WejpTOCffshGDDb4neIrXVUA1EAE'
           events={
-            googleCalendarId='c_7955ufnv2qh61m7vs5qjk1hhs8@group.calendar.google.com'
+            googleCalendarId='en.usa#holiday@group.v.calendar.google.com'
             }
           initialView="timeGridWeek"
           editable = {true}
