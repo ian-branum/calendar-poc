@@ -1,114 +1,252 @@
-import React from 'react';
+import React, {useState} from 'react';
 import FullCalendar from '@fullcalendar/react'
-import Calendar from '@fullcalendar/core'
-import googleCalendarPlugin from '@fullcalendar/google-calendar';
 import timeGridPlugin from '@fullcalendar/timegrid'
 import interactionPlugin from "@fullcalendar/interaction";
 import axios from 'axios';
+import Container from 'react-bootstrap/Container'
+import Row from 'react-bootstrap/Row'
+import Col from 'react-bootstrap/Col'
+
+
+import EditEvent from "./Components/EditEventModal";
+import QueryPanel from "./Components/QueryPanel";
+import * as Constants from './constants'
 
 import './App.css';
+require('dotenv').config()
 
-class App extends React.Component {
+export default function App(props) {
 
-  constructor(props) {
-    super(props);
-    this.state = { apiResponse: "" };
+  const [show, setShow] = useState(false);
+  const [edit, setEdit] = useState(false);
+  const [sessions, setSessions] = useState([]);
+  const [displayedSessions, setDisplayedSessions] = useState([]);
+  const [activeSession, setActiveSession] = useState(null);
+  const [loaded, setLoaded] = useState(false);
+  const [locationFilter, setLocationFilter] = useState([]);
+  const [coachFilter, setCoachFilter] = useState([]);
+  const [studentFilter, setStudentFilter] = useState([]);
+  const [studentList, setStudentList] = useState([]);
+  const [coachList, setCoachList] = useState([]);
+  const [coach, setCoach] = useState(null);
+
+  //Dummy session data
+  const user = {name:'Marge Simpson', id:1, userType:3};
+  const student = {name:'Jenny Smith', id:100};
+
+  const callAPI = () => {
+    if(!loaded) {
+      setLoaded(true);
+      axios.get("http://localhost:5000/api/session", {params:{userId:user.id, userType:user.userType, studentId:student.id}})
+        .then(res => formatEventList(res.data))
+        .then(res => user.userType === 3 ? setSessions(res) : setDisplayedSessions(res)); //this trinary is to support the filter for team leads
+    }  
   }
 
-  callAPI() {
-      fetch("http://localhost:5000/api/student")
-          .then(res => res.json())
-          .then(res => this.formatEventList(res))
-          .then(res => this.setState({ sess: res }));
-  }
-
-  formatEventList(json) {
+  const formatEventList = (json) => {
+    console.log(typeof data);
     var ret = [];
     json.forEach(elem => {
-      var sess = {title:elem.title, start:elem.start, end:elem.end, extendedProps:{sessId:elem.sessId}}
+      var sess = {
+        title: (elem.sessionType === 2 ? elem.coach.name : elem.student.name) + ' (' + Constants.SESSION_TYPES[elem.sessionType].display + ')', 
+        start:elem.start, 
+        end:elem.end, 
+        color: (sessionEditable(elem.coach.id) || user.userType <=1 ) ? Constants.SESSION_TYPES[elem.sessionType].bgColor : '#cccccc',
+        textColor: Constants.SESSION_TYPES[elem.sessionType].textColor,
+        extendedProps:{sessId:elem.sessId, student:elem.student, coach:elem.coach, sessionType:elem.sessionType, locationId:elem.locationId}}
       ret.push(sess);
     });
 
     return ret;
   }
 
-
-  componentDidMount() {
-      this.callAPI(); 
+  const closeDialog = (session) => {
+    setLoaded(false);
+    callAPI();
+    setShow(false);
   }
 
-    handleDateClick = (arg) => { 
-    var title = prompt('Title', 'New session');
-    var start = arg.date;
-    var end = arg.date;
-    //end.setHours(end.getHours()+1);
-    const sess = {title:title, start:start, end:end};
-    axios
-      .put('http://localhost:5000/api/student', sess)
-      .then(() => this.callAPI())
-      .catch(err => {
-        console.error(err);
-      });
+  const handleDateClick = (arg) => { 
+    if(user.userType === 1) { //if parent
+      return;
+    }
+    var start = new Date(arg.date).setHours(arg.date.getHours()+0);
+    var end = new Date(arg.date).setHours(arg.date.getHours()+1);
+    var sess = {
+      sessId: 0, 
+      title:'New Session', 
+      start:start, 
+      end:end, 
+      student:student,
+      coach:user
+    }; 
+    setEdit(false);  
+    setActiveSession(sess);
 
   }
   
-  handleEventClick = (arg) => { 
-    var title = prompt('New title', arg.event.title);
-    const sess = {sessId: arg.event.extendedProps.sessId, title:title, start:arg.event.start, end:arg.event.end};
+  const sessionEditable = (coachId) => {
+    if(user.userType >= 3) {
+      return true; //admin or lead coach
+    }
+    if(user.userType === 2 && user.id === coachId) {
+      return true;
+    }
+    return false;
+  }
+
+  const handleEventClick = (arg) => { 
+    if(!sessionEditable(arg.event.extendedProps.coach.id)) { 
+      return;
+    }
+    var sess = {
+      sessId: arg.event.extendedProps.sessId, 
+      title:arg.event.title, 
+      sessionType: arg.event.extendedProps.sessionType,
+      locationId: arg.event.extendedProps.locationId,
+      start:arg.event.start, 
+      end:arg.event.end, 
+      coach:arg.event.extendedProps.coach, 
+      coachId:arg.event.extendedProps.coach.id, 
+      student:arg.event.extendedProps.student
+    };
+    setEdit(true);
+    setActiveSession(sess);
+    setCoachFilter(arg.event.extendedProps.coach);
+  }
+
+  const handleEventDrop = (arg) => {
+    if(!sessionEditable(arg.event.extendedProps.coach.id)) { 
+      arg.revert();
+      return;
+    }
+    const sess = {
+      sessId: arg.event.extendedProps.sessId, 
+      sessionType:arg.event.extendedProps.sessionType,
+      locationId:arg.event.extendedProps.locationId,
+      start:arg.event.start, 
+      end:arg.event.end, 
+      student:arg.event.extendedProps.student, 
+      coach:arg.event.extendedProps.coach
+    };
     axios
-      .post('http://localhost:5000/api/student', sess)
-      .then(() => console.log('Sess modified'))
+      .post('http://localhost:5000/api/session', sess)
+      .then(() => setLoaded(false))
+      //.then(() => callAPI())
       .catch(err => {
         console.error(err);
       });
   }
 
-  handleEventDrop = (arg) => {
-    const sess = {sessId: arg.event.extendedProps.sessId, title:arg.event.title, start:arg.event.start, end:arg.event.end};
+  const updateFilter = (update) => {
+    if(update.field === 'location') {
+      updateArray(locationFilter, update.id, update.value);
+    }
+    if(update.field === 'coach') {
+      updateArray(coachFilter, update.id, update.value);    
+    }
+    if(update.field === 'student') {
+      updateArray(studentFilter, update.id, update.value);    
+    }
+
+    var filtered = sessions;
+    filtered = filtered.filter(sess => locationFilter.includes(sess.extendedProps.locationId));
+    filtered = filtered.filter(sess => coachFilter.includes(sess.extendedProps.coach.id));
+    filtered = filtered.filter(sess => studentFilter.includes(sess.extendedProps.student.id));
+
+    
+    setDisplayedSessions(filtered);
+  }
+
+  const updateArray = (array, id, value) => {
+    if(value) {
+      array.push(id);
+    }
+    else {
+      array.splice(array.indexOf(id),1);
+    }
+  }
+
+
+  React.useEffect(() => {
+    if(activeSession) {
+        setLoaded(false);
+          setShow(true);
+    }
+  }, [activeSession]);
+    
+  //On page load
+  React.useEffect(() => {
+    callAPI();
     axios
-      .post('http://localhost:5000/api/student', sess)
-      .catch(err => {
-        console.error(err);
-      });
-  }
+            .get('http://localhost:5000/api/student')
+            .then((res) => {
+                setStudentList(res.data);
+                
+            })
+            .catch(err => {
+                console.error(err);
+        });
+        axios
+            .get('http://localhost:5000/api/coach')
+            .then((res) => {
+                setCoachList(res.data);
+                setCoachFilter(res.data);
+            })
+            .catch(err => {
+                console.error(err);
+        });
+    
+  }, []);
 
-  /** 
-  render() {
-    return (
-      <div className="App">
-        <Calendar
-          plugins={[timeGridPlugin, interactionPlugin, googleCalendarPlugin]}
-          googleCalendarApiKey='AIzaSyDcnW6WejpTOCffshGDDb4neIrXVUA1EAE'
-          events={
-            googleCalendarId='en.usa#holiday@group.v.calendar.google.com'
-            }
-          initialView="timeGridWeek"
-          editable = {true}
-          dateClick={this.handleDateClick}
-         
-      />  
-       </div>
-    )
-  }
-*/
+  
+  return (
+    <div className="App">
+      <Container fluid>
+        <Row>
+          <QueryPanel 
+            user={user}
+            updateFilter={updateFilter}
+            locationFilter={locationFilter}
+            coachFilter={coachFilter}
+            studentFilter={studentFilter}
+            studentList={studentList}
+            coachList={coachList}
+          />
+          <Col>
+            <FullCalendar
+              plugins={[timeGridPlugin, interactionPlugin]}
+              events={displayedSessions}
+              initialView="timeGridWeek"
+              editable = {user.userType > 1}
+              eventOrder = "-sessionType"
+              dateClick={handleDateClick}
+              eventClick={handleEventClick}
+              eventDrop={handleEventDrop}  
+              eventResize={handleEventDrop}      
+              locationFilter={locationFilter}
+              coachFilter={coachFilter}
+              studentFilter={studentFilter}
+            />       
+          </Col>
+        </Row>
+      </Container>
+      <EditEvent 
+        show={show}
+        edit={edit}
+        activeSession={activeSession}
+        closeDialog={closeDialog}
+        user={user}
+        student={student}
+        coach={coach}
+        coachList={coachList}
+        studentList={studentList}
+      />
+
+    </div>
+  )
 
 
-  render() {
-    return (
-      <div className="App">
-        <FullCalendar
-          plugins={[ timeGridPlugin, interactionPlugin ]}
-          initialView="timeGridWeek"
-          editable = {true}
-          snapDuration = '00:15:00'
-          dateClick={this.handleDateClick}
-          eventClick={this.handleEventClick}
-          eventDrop={this.handleEventDrop}
-          events={this.state.sess}
-      />  
-       </div>
-    )
-  }
+
 }
 
-export default App;
