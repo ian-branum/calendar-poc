@@ -30,7 +30,7 @@ export default function QueryPanel(props) {
                         type='checkbox'
                         label={location.display}
                         onChange={e => setLocation(location.id, e)}
-                        key={location.id}
+                        key={idx}
                         checked={props.locationFilter.includes(location.id)}
                     /> 
                 )    
@@ -50,7 +50,7 @@ export default function QueryPanel(props) {
                         type='checkbox'
                         label={coach.name}
                         onChange={e => setCoach(coach.id, e)}
-                        key={coach.id}
+                        key={idx}
                         checked={props.coachFilter.includes(coach.id)}
                     /> 
                 )    
@@ -70,7 +70,7 @@ export default function QueryPanel(props) {
                         type='checkbox'
                         label={student.name}
                         onChange={e => setStudent(student.id, e)}
-                        key={student.id}
+                        key={idx}
                         checked={props.studentFilter.includes(student.id)}
                     /> 
                 )    
@@ -78,7 +78,7 @@ export default function QueryPanel(props) {
         ))   
     } 
 
-    if(props.user.userType == 3) {
+    if(props.user.userType >= 3) {
         return (
             <Col xs={3}>
                 <Container>

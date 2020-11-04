@@ -31,7 +31,7 @@ export default function App(props) {
   const [coach, setCoach] = useState(null);
 
   //Dummy session data
-  const user = {name:'Marge Simpson', id:1, userType:3};
+  const user = {name:'Marge Simpson', id:10, userType:2};
   const student = {name:'Jenny Smith', id:100};
 
   const callAPI = () => {
@@ -44,7 +44,6 @@ export default function App(props) {
   }
 
   const formatEventList = (json) => {
-    console.log(typeof data);
     var ret = [];
     json.forEach(elem => {
       var sess = {
@@ -53,14 +52,24 @@ export default function App(props) {
         end:elem.end, 
         color: (sessionEditable(elem.coach.id) || user.userType <=1 ) ? Constants.SESSION_TYPES[elem.sessionType].bgColor : '#cccccc',
         textColor: Constants.SESSION_TYPES[elem.sessionType].textColor,
-        extendedProps:{sessId:elem.sessId, student:elem.student, coach:elem.coach, sessionType:elem.sessionType, locationId:elem.locationId}}
+        extendedProps:{
+          sessId:elem.sessId, 
+          student:elem.student, 
+          coach:elem.coach, 
+          sessionType:elem.sessionType, 
+          locationId:elem.locationId, 
+          cancelledBilled:elem.cancelledBilled, 
+          cancelledUnbilled:elem.cancelledUnbilled,
+          cancelNotes:elem.cancelNotes
+        }
+      }
       ret.push(sess);
     });
 
     return ret;
   }
 
-  const closeDialog = (session) => {
+  const closeDialog = () => {
     setLoaded(false);
     callAPI();
     setShow(false);
@@ -107,12 +116,14 @@ export default function App(props) {
       start:arg.event.start, 
       end:arg.event.end, 
       coach:arg.event.extendedProps.coach, 
-      coachId:arg.event.extendedProps.coach.id, 
-      student:arg.event.extendedProps.student
+      student:arg.event.extendedProps.student,
+      cancelledBilled:arg.event.extendedProps.cancelledBilled,
+      cancelledUnbilled:arg.event.extendedProps.cancelledUnbilled,
+      cancelNotes:arg.event.extendedProps.cancelNotes
     };
     setEdit(true);
     setActiveSession(sess);
-    setCoachFilter(arg.event.extendedProps.coach);
+    //setCoachFilter(arg.event.extendedProps.coach);
   }
 
   const handleEventDrop = (arg) => {
@@ -139,6 +150,7 @@ export default function App(props) {
   }
 
   const updateFilter = (update) => {
+    //console.log(update);
     if(update.field === 'location') {
       updateArray(locationFilter, update.id, update.value);
     }
@@ -191,7 +203,6 @@ export default function App(props) {
             .get('http://localhost:5000/api/coach')
             .then((res) => {
                 setCoachList(res.data);
-                setCoachFilter(res.data);
             })
             .catch(err => {
                 console.error(err);
@@ -238,7 +249,7 @@ export default function App(props) {
         closeDialog={closeDialog}
         user={user}
         student={student}
-        coach={coach}
+        coach={user}
         coachList={coachList}
         studentList={studentList}
       />

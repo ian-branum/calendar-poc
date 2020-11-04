@@ -11,7 +11,7 @@ var sessions=[
         end: '2020-11-03 13:00:00',
         locationId: 0,
         student: {name:'Jenny Smith', id:100},
-        coach: {name:'Marge Simpson', id:1}
+        coach: {name:'Marge Simpson', id:10}
     },
     {   
         sessId:2,
@@ -20,7 +20,7 @@ var sessions=[
         end: '2020-11-03 15:00:00',
         locationId:1,
         student: {name:'June Smith', id:101},
-        coach: {name:'Marge Simpson', id:1}
+        coach: {name:'Marge Simpson', id:10}
     },
     {   
         sessId:3,
@@ -29,7 +29,7 @@ var sessions=[
         end: '2020-11-05 13:00:00',
         locationId: 0,
         student: {name:'Jenny Smith', id:100},
-        coach: {name:'Lisa Simpson', id:3}
+        coach: {name:'Lisa Simpson', id:30}
     }
   ];
 
@@ -43,15 +43,15 @@ var sessions=[
   ];
 
   var coaches = [
-    {name: 'Marge Simpson', id: 1},
-    {name: 'Homer Simpson', id: 2},
-    {name: 'Lisa Simpson', id: 3}
+    {name: 'Marge Simpson', id: 10},
+    {name: 'Homer Simpson', id: 20},
+    {name: 'Lisa Simpson', id: 30}
   ];
 
 router.get('/session', function(req, res, next) {
     //With no params, return everything
     //userType == coach, return all sessions for student OR coach. Not AND. 
-    //userType == parent, return all sessions for family, all children
+    //userType == parent, return all sessions for family, all children, but not Coach Availability (id:2)
     res.send(sessions);
 });
 
@@ -69,6 +69,11 @@ router.put('/session', function(req, res, next) {
     newSess['sessId'] = sessions.length + 1;
     console.log(newSess);
     sessions.push(newSess);
+    res.sendStatus(200);
+});
+
+router.delete('/session', function(req, res) {
+    console.log('sess: ' + req.query['sessionId'])
     res.sendStatus(200);
 });
 

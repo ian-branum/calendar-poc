@@ -1,7 +1,7 @@
 export const SESSION_TYPES = [
     {id:0, display:'Coaching', bgColor:'#B2FF59', textColor:'#51585C'},
     {id:1, display:'Sit-in', bgColor:'#69F0AE', textColor:'#51585C'},
-    {id:2, display:'Coach availability', bgColor:'#DDDDDD', textColor:'#51585C'}    
+    {id:2, display:'Coach availability', bgColor:'#EEEEEE', textColor:'#51585C'}    
 ]
 
 export const USER_TYPES = [

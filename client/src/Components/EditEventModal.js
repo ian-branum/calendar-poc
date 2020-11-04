@@ -20,24 +20,44 @@ export default function EditEvent(props)  {
     const [coach, setCoach] = useState(null);
  
 
+    const handleDelete = () => {
+        axios
+            .delete('http://localhost:5000/api/session', {params:{sessionId:activeSession.sessId}})
+            .then(() =>  props.closeDialog())
+            .catch(err => {
+                console.error(err);
+        });
+    }
     
     const handleSave = (arg) => { 
         //var coach = props.coachList.find(obj => {
         //    return obj.id == activeSession.coachId;
         //});
+        if(
+            activeSession.sessionType == undefined ||
+            (student == undefined && activeSession.sessionType != 2 ) ||
+            coach == undefined ||
+            activeSession.locationId == undefined
+        ) {
+            alert('Fill in all required fields:Session Type, Student, Coach, and ')
+            return;
+        }
         const sess = {
             sessId: activeSession.sessId, 
             sessionType: activeSession.sessionType, 
             start:activeSession.start, 
             end:activeSession.end,
-            student:activeSession.student,
-            coach:activeSession.coach,
-            locationId:activeSession.locationId
+            student:{id:student.id, name:student.name},
+            coach:{id:coach.id, name:coach.name},
+            locationId:activeSession.locationId,
+            cancelledBilled:activeSession.cancelledBilled,
+            cancelledUnbilled:activeSession.cancelledUnbilled,
+            cancelNotes:activeSession.cancelNotes
         };
+        //return;
         if(props.edit) {
             axios
                 .post('http://localhost:5000/api/session', sess)
-                .then(() => console.log('Sess modified'))
                 .then(() =>  props.closeDialog(sess))
                 .catch(err => {
                     console.error(err);
@@ -59,13 +79,16 @@ export default function EditEvent(props)  {
    
     React.useEffect(() => {
        setActiveSession(props.activeSession);
-       //setCoach(props.activeSession.coach);
-       
+        
     }, [props.activeSession]);
 
     React.useEffect(() => {
         setStudent(props.student);
     }, [props.student]);
+
+    React.useEffect(() => {
+        setCoach(props.coach);
+    }, [props.coach]);
 
 
     const StudentViewer = () => {
@@ -78,29 +101,23 @@ export default function EditEvent(props)  {
         );  
     }
 
-    const handleStudentChange = (e) => {
-        console.log('e: ' + e.target.value);
-        setStudent(e.target.value);
-    }
-
-    //setActiveSession({...activeSession, student:parseInt(e.target.value)})
     const StudentSelector = (props) => {
         return (
         <Form.Group>
             <Form.Label>Student: </Form.Label>
-            <Form.Control as="select" onChange={e => handleStudentChange(e)}> 
+            <Form.Control as="select" defaultValue={student} onChange={e => setStudent(e.target.value)}> 
             <option className="text-muted">Select . . .</option>                
                         {
                             props.studentList.map((student, idx) => {
                                 return (
                                     <option 
                                         value={student}
-                                        key={student.id}
+                                        key={idx}
                                     >{student.name}</option>
                                 )
                             })
                         }
-                     </Form.Control>
+            </Form.Control>
             <br/>
         </Form.Group>
         );  
@@ -115,24 +132,27 @@ export default function EditEvent(props)  {
         );  
     }
 
-    //onChange={e => setActiveSession({...activeSession, coachId:e.target.value})}
+    const setCoach2 = (val) => {
+        console.log(val);
+    }
+
     const CoachSelector = (props) => {
         return (
         <Form.Group>
             <Form.Label>Coach: </Form.Label>
-            <Form.Control as="select" >
+            <Form.Control as="select" defaultValue={coach} onChange={e => setCoach(e.target.value)}>
             <option className="text-muted">Select . . .</option>                
             {
-                props.coachList.map((elem, idx) => {
+                props.coachList.map((coach, idx) => {
                     return (
                         <option 
-                            value={elem.id}
-                            key={elem.id}
-                        >{elem.name}</option>
+                            value={coach}
+                            key={idx}
+                        >{coach.name}</option>
                     )
                 })
             }
-                     </Form.Control>
+        </Form.Control>
             <br/>
             
         </Form.Group>
@@ -162,7 +182,7 @@ export default function EditEvent(props)  {
                                     type="radio"
                                     name="sessionType"
                                     variant="primary"
-                                    key={sess.sessionType} 
+                                    key={idx} 
                                     checked={sess.id === activeSession.sessionType}
                                     onClick={e => setActiveSession({...activeSession, sessionType:sess.id})}
                                 >{sess.display}</ToggleButton>
@@ -175,7 +195,7 @@ export default function EditEvent(props)  {
                                     type="radio"
                                     name="location"
                                     variant="primary"
-                                    key={loc.id} 
+                                    key={idx} 
                                     checked={loc.id === activeSession.locationId}
                                     onClick={e =>setActiveSession({...activeSession, locationId:loc.id})}
                                 >{loc.display}</ToggleButton>
@@ -201,6 +221,29 @@ export default function EditEvent(props)  {
                             showTimeSelect
                             dateFormat="EEE, M d h:mm aa"
                         />
+                        <Form.Check
+                            style={{ display:'flex', flexDirection:'column'}}
+                            type='checkbox'
+                            key={1}
+                            label='Cancelled - billed'
+                            onChange={e => setActiveSession({...activeSession, cancelledBilled:e.currentTarget.checked})}
+                            checked={activeSession.cancelledBilled}
+                        /> 
+                        <Form.Check
+                            style={{ display:'flex', flexDirection:'column'}}
+                            type='checkbox'
+                            key={2}
+                            label='Cancelled - unbilled'
+                            onChange={e => setActiveSession({...activeSession, cancelledUnbilled:e.currentTarget.checked})}
+                            checked={activeSession.cancelledUnbilled}
+                        /> 
+                        <Form.Label>Cancellation notes: </Form.Label>
+                        <Form.Control 
+                            name="cancelNotes"
+                            type="text" 
+                            defaultValue={props.activeSession.cancelNotes} 
+                            onChange={e => setActiveSession({...activeSession, cancelNotes:e.currentTarget.value})}
+                        />
                     </Form.Group>
                     
                     </Form>
@@ -208,7 +251,7 @@ export default function EditEvent(props)  {
     
                 <Modal.Footer>
                     <Button variant="secondary" onClick={props.closeDialog}>Cancel</Button>
-                    <Button variant="primary" onClick={handleSave}>Delete</Button>
+                    <Button variant="primary" onClick={handleDelete}>Delete</Button>
                     <Button variant="primary" onClick={handleSave}>Save</Button>
                 </Modal.Footer>
             </Modal>
