@@ -16,8 +16,8 @@ require('react-datepicker/dist/react-datepicker.css')
 export default function EditEvent(props)  {
 
     const [activeSession, setActiveSession] = useState(null);
-    const [student, setStudent] = useState(null);
-    const [coach, setCoach] = useState(null);
+    const [studentId, setStudentId] = useState(null);
+    const [coachId, setCoachId] = useState(null);
  
 
     const handleDelete = () => {
@@ -30,25 +30,32 @@ export default function EditEvent(props)  {
     }
     
     const handleSave = (arg) => { 
-        //var coach = props.coachList.find(obj => {
-        //    return obj.id == activeSession.coachId;
-        //});
         if(
             activeSession.sessionType == undefined ||
-            (student == undefined && activeSession.sessionType != 2 ) ||
-            coach == undefined ||
+            (studentId == undefined && activeSession.sessionType != 2 ) ||
+            coachId == undefined ||
             activeSession.locationId == undefined
         ) {
             alert('Fill in all required fields:Session Type, Student, Coach, and ')
             return;
         }
+        var coach = props.coachList.find(obj => {
+            return obj.id == coachId;
+        });
+        var student = props.studentList.find(obj => {
+            return obj.id == studentId;
+        });
+
+
+        console.log('coach: ' + coach);
+
         const sess = {
             sessId: activeSession.sessId, 
             sessionType: activeSession.sessionType, 
             start:activeSession.start, 
             end:activeSession.end,
-            student:{id:student.id, name:student.name},
-            coach:{id:coach.id, name:coach.name},
+            student: activeSession.sessionType == 2 ? {id:0} : student, //{id:student.id, name:student.name},
+            coach:coach, //{id:coach.id, name:coach.name},
             locationId:activeSession.locationId,
             cancelledBilled:activeSession.cancelledBilled,
             cancelledUnbilled:activeSession.cancelledUnbilled,
@@ -83,11 +90,11 @@ export default function EditEvent(props)  {
     }, [props.activeSession]);
 
     React.useEffect(() => {
-        setStudent(props.student);
+        setStudentId(props.student.id);
     }, [props.student]);
 
     React.useEffect(() => {
-        setCoach(props.coach);
+        setCoachId(props.coach.id);
     }, [props.coach]);
 
 
@@ -105,13 +112,13 @@ export default function EditEvent(props)  {
         return (
         <Form.Group>
             <Form.Label>Student: </Form.Label>
-            <Form.Control as="select" defaultValue={student} onChange={e => setStudent(e.target.value)}> 
+            <Form.Control as="select" defaultValue={studentId} onChange={e => setStudentId(e.target.value)}> 
             <option className="text-muted">Select . . .</option>                
                         {
                             props.studentList.map((student, idx) => {
                                 return (
                                     <option 
-                                        value={student}
+                                        value={student.id}
                                         key={idx}
                                     >{student.name}</option>
                                 )
@@ -140,13 +147,13 @@ export default function EditEvent(props)  {
         return (
         <Form.Group>
             <Form.Label>Coach: </Form.Label>
-            <Form.Control as="select" defaultValue={coach} onChange={e => setCoach(e.target.value)}>
+            <Form.Control as="select" defaultValue={coachId} onChange={e => setCoachId(e.target.value)}>
             <option className="text-muted">Select . . .</option>                
             {
                 props.coachList.map((coach, idx) => {
                     return (
                         <option 
-                            value={coach}
+                            value={coach.id}
                             key={idx}
                         >{coach.name}</option>
                     )

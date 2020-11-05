@@ -31,7 +31,7 @@ export default function App(props) {
   const [coach, setCoach] = useState(null);
 
   //Dummy session data
-  const user = {name:'Marge Simpson', id:10, userType:2};
+  const user = {name:'Marge Simpson', id:10, userType:3};
   const student = {name:'Jenny Smith', id:100};
 
   const callAPI = () => {
@@ -39,7 +39,8 @@ export default function App(props) {
       setLoaded(true);
       axios.get("http://localhost:5000/api/session", {params:{userId:user.id, userType:user.userType, studentId:student.id}})
         .then(res => formatEventList(res.data))
-        .then(res => user.userType === 3 ? setSessions(res) : setDisplayedSessions(res)); //this trinary is to support the filter for team leads
+        .then(res => user.userType === 3 ? setSessions(res) : setDisplayedSessions(res)) //this ternary is to support the filter for team leads
+        .then(() => setLoaded(false)); 
     }  
   }
 
@@ -65,7 +66,7 @@ export default function App(props) {
       }
       ret.push(sess);
     });
-
+    console.log(ret);
     return ret;
   }
 
@@ -76,7 +77,7 @@ export default function App(props) {
   }
 
   const handleDateClick = (arg) => { 
-    if(user.userType === 1) { //if parent
+    if(user.userType <= 1) { //if parent or student
       return;
     }
     var start = new Date(arg.date).setHours(arg.date.getHours()+0);
@@ -123,7 +124,6 @@ export default function App(props) {
     };
     setEdit(true);
     setActiveSession(sess);
-    //setCoachFilter(arg.event.extendedProps.coach);
   }
 
   const handleEventDrop = (arg) => {
@@ -142,8 +142,7 @@ export default function App(props) {
     };
     axios
       .post('http://localhost:5000/api/session', sess)
-      .then(() => setLoaded(false))
-      //.then(() => callAPI())
+      .then(() => callAPI())
       .catch(err => {
         console.error(err);
       });
@@ -164,7 +163,11 @@ export default function App(props) {
     var filtered = sessions;
     filtered = filtered.filter(sess => locationFilter.includes(sess.extendedProps.locationId));
     filtered = filtered.filter(sess => coachFilter.includes(sess.extendedProps.coach.id));
+    //get coach availability for location and coach 
+    var coachAvailability = filtered.filter(sess => sess.extendedProps.sessionType === 2);
+   
     filtered = filtered.filter(sess => studentFilter.includes(sess.extendedProps.student.id));
+    filtered = filtered.concat(coachAvailability);
 
     
     setDisplayedSessions(filtered);
